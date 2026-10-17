@@ -1,0 +1,167 @@
+' OSLANG 0.61 - Hangman Game Module
+USING OSL.I18N
+CLASS HANGMANGAME
+    VAR Words
+    VAR Word
+    VAR Guessed
+    VAR Errors
+    VAR MaxErrors
+    VAR Stages
+
+    CONSTRUCTOR()
+        Lang = I18N.LANGUAGE()
+        IF Lang = "PT-BR" THEN
+            Path = "../../CONF/HANGMAN-WORDS.PT-BR"
+        ELSE
+            Path = "../../CONF/HANGMAN-WORDS.EN-US"
+        END
+        IF FILE.EXISTS(Path) THEN
+            Words = FILE.READ(Path)
+        ELSE
+            Words = FILE.READ("../../CONF/HANGMAN.WDS")
+        END
+        MaxErrors = 7
+        Guessed = ""
+        Errors = 0
+        Stages = [
+            ["", "", "", "", "", "========="],
+            ["  |", "  |", "  |", "  |", "  |", "========="],
+            ["  +---+", "  |", "  |", "  |", "  |", "  |", "========="],
+            ["  +---+", "  |   |", "  |", "  |", "  |", "  |", "========="],
+            ["  +---+", "  |   |", "  |   O", "  |", "  |", "  |", "========="],
+            ["  +---+", "  |   |", "  |   O", "  |   |", "  |", "  |", "========="],
+            ["  +---+", "  |   |", "  |   O", "  |  /|\\", "  |", "  |", "========="],
+            ["  +---+", "  |   |", "  |   O", "  |  /|\\", "  |  / \\", "  |", "========="]
+        ]
+    END CONSTRUCTOR
+
+    PUBLIC FUNCTION PLAY()
+        IF COUNT(Words) = 0 THEN
+            PRINT I18N.GET("hangman.no_words")
+            RETURN
+        END
+
+        Index = MATH.RANDOM(COUNT(Words))
+        Word = Words[Index]
+        Guessed = ""
+        Errors = 0
+
+        PRINT ""
+        PRINT I18N.GET("hangman.title")
+        PRINT I18N.GET("hangman.instruction")
+        PRINT ""
+
+        WHILE Errors < MaxErrors
+            CLEAR
+            PRINT I18N.GET("hangman.title")
+            PRINT ""
+            DRAW_STAGE()
+            PRINT ""
+            DRAW_WORD()
+            PRINT ""
+            PRINT I18N("hangman.errors", STR(Errors), STR(MaxErrors))
+            PRINT I18N("hangman.guessed", GET_GUESSED_STRING())
+
+            Display = GET_DISPLAY()
+            IF GET_HIDDEN_COUNT(Display) = 0 THEN
+                PRINT ""
+                PRINT I18N("hangman.won", Word)
+                RETURN
+            END
+
+            PRINT ""
+            SHOW I18N.GET("hangman.input_prompt")
+            INPUT Guess
+            IF Guess = "0" OR COUNT(Guess) = 0 THEN
+                RETURN
+            END
+
+            Letter = Guess.TOUPPER()
+            IF COUNT(Letter) <> 1 THEN
+                CONTINUE
+            END
+
+            IF HAS_GUESSED(Letter) THEN
+                CONTINUE
+            END
+
+            ADD_GUESSED(Letter)
+            IF NOT CONTAINS_LETTER(Word.NORMALIZE(), Letter) THEN
+                Errors++
+            END
+        END
+
+        CLEAR
+        PRINT I18N.GET("hangman.title")
+        PRINT ""
+        DRAW_STAGE()
+        PRINT ""
+        PRINT I18N("hangman.lost", Word)
+    END FUNCTION
+
+    PUBLIC FUNCTION DRAW_STAGE()
+        Stage = Stages[Errors]
+        FOR I = 0 TO COUNT(Stage) - 1
+            PRINT Stage[I]
+        END
+    END FUNCTION
+
+    PUBLIC FUNCTION DRAW_WORD()
+        Display = GET_DISPLAY()
+        Result = ""
+        FOR I = 0 TO COUNT(Display) - 1
+            IF I > 0 THEN
+                Result += " "
+            END
+            Result += Display.SUBSTR(I, 1)
+        END
+        PRINT Result
+    END FUNCTION
+
+    PUBLIC FUNCTION GET_DISPLAY()
+        Result = ""
+        WordLen = COUNT(Word)
+        FOR I = 0 TO WordLen - 1
+            NormalizedChar = Word.SUBSTR(I, 1).NORMALIZE()
+            IF HAS_GUESSED(NormalizedChar) THEN
+                Result += Word.SUBSTR(I, 1)
+            ELSE
+                Result += "_"
+            END
+        END
+        RETURN Result
+    END FUNCTION
+
+    PUBLIC FUNCTION GET_HIDDEN_COUNT(Display)
+        HiddenCount = 0
+        FOR I = 0 TO COUNT(Display) - 1
+            IF Display.SUBSTR(I, 1) = "_" THEN
+                HiddenCount++
+            END
+        END
+        RETURN HiddenCount
+    END FUNCTION
+
+    PUBLIC FUNCTION HAS_GUESSED(Letter)
+        RETURN Guessed.INDEXOF(Letter) >= 0
+    END FUNCTION
+
+    PUBLIC FUNCTION ADD_GUESSED(Letter)
+        Guessed += Letter
+    END FUNCTION
+
+    PUBLIC FUNCTION GET_GUESSED_STRING()
+        IF COUNT(Guessed) = 0 THEN
+            RETURN ""
+        END
+        Letters = []
+        FOR I = 0 TO COUNT(Guessed) - 1
+            Letters.ADD(Guessed.SUBSTR(I, 1))
+        END
+        RETURN Letters.JOIN(", ")
+    END FUNCTION
+
+    PUBLIC FUNCTION CONTAINS_LETTER(Word, Letter)
+        RETURN Word.INDEXOF(Letter) >= 0
+    END FUNCTION
+END CLASS

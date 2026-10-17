@@ -1,0 +1,9 @@
+' OSLANG 0.61 - Shell Extensions Demo
+USING OSL.I18N
+FUNCTION MAIN()
+    SHOW I18N.GET("shell.pwd_label")
+    PRINT PWD()
+    PRINT ""
+    SHOW I18N.GET("shell.listing_label")
+    DIR.LIST(".")
+END FUNCTION

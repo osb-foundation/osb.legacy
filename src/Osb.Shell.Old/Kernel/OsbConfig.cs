@@ -1,0 +1,41 @@
+namespace Osb.Shell.Kernel;
+
+/// <summary>
+/// Configuration file format for OSB.
+/// </summary>
+public class OsbConfig
+{
+    public string SystemDir { get; set; } = "";
+    public string Message { get; set; } = "Seja bem-vindo ao OSB 3.0";
+
+    public static OsbConfig Load(string path)
+    {
+        var cfg = new OsbConfig { SystemDir = Path.GetDirectoryName(path) ?? "." };
+        if (!File.Exists(path))
+        {
+            return cfg;
+        }
+
+        var lines = File.ReadAllLines(path);
+        for (var i = 0; i < lines.Length; i++)
+        {
+            var key = lines[i].Trim().ToUpperInvariant();
+            string Next() => i + 1 < lines.Length ? lines[++i] : "";
+
+            switch (key)
+            {
+                case "[SYSTEM]": cfg.SystemDir = Next(); break;
+                case "[MESSAGE]": cfg.Message = Next(); break;
+            }
+        }
+        return cfg;
+    }
+
+    public void Save(string path)
+    {
+        var content = $"[System]\n{SystemDir}\n\n[Message]\n{Message}\n";
+        File.WriteAllText(path, content);
+    }
+
+    private static int ParseInt(string s, int fallback) => int.TryParse(s.Trim(), out var v) ? v : fallback;
+}

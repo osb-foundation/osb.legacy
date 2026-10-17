@@ -1,0 +1,10 @@
+' OSLANG 0.61 - Hello World
+USING OSL.I18N
+FUNCTION MAIN()
+    PRINT I18N.GET("helloworld.greeting")
+    PRINT ""
+    SHOW I18N.GET("helloworld.prompt")
+    INPUT Name
+    PRINT I18N("helloworld.hello", Name)
+    SHOW "Vindo do  KISS OSLANG"
+END FUNCTION

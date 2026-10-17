@@ -1,0 +1,105 @@
+using System.Linq;
+
+namespace Osb.Shell.Kernel;
+
+public partial class OsbShell
+{
+    private string GetLocalizedConfigPath(string baseFileName)
+    {
+        var lang = I18nService.CurrentLanguage;
+        if (lang == "EN-US")
+        {
+            var localizedPath = Path.Combine(_env.ConfDir, Path.GetFileNameWithoutExtension(baseFileName) + ".EN-US" + Path.GetExtension(baseFileName));
+            if (File.Exists(localizedPath))
+            {
+                return localizedPath;
+            }
+        }
+
+        return Path.Combine(_env.ConfDir, baseFileName);
+    }
+    private void HandleHostname(string args)
+    {
+        if (string.IsNullOrWhiteSpace(args))
+        {
+            Console.WriteLine(_env.MachineName);
+            return;
+        }
+
+        if (!_isAuthenticated)
+        {
+            Console.WriteLine(I18nService.Get("apps.must_be_authenticated_hostname"));
+            return;
+        }
+
+        _env.SaveMachineName(args.Trim());
+        Console.WriteLine(I18nService.Get("apps.machine_name_set", _env.MachineName));
+    }
+
+    private void RunAplic(string arg)
+    {
+        var cfgPath = GetLocalizedConfigPath("APPS.CFG");
+        var apps = ConfigFileParser.LoadEntries(cfgPath);
+        arg = arg.Trim().ToUpperInvariant();
+
+        if (arg == "")
+        {
+            Console.WriteLine(I18nService.Get("apps.installed_apps"));
+            foreach (var app in apps)
+                Console.WriteLine($"{app.Name} - {app.Description}");
+            Console.WriteLine();
+            Console.WriteLine(I18nService.Get("apps.use_app"));
+            return;
+        }
+
+        var entry = apps.FirstOrDefault(a => a.Name.Equals(arg, StringComparison.OrdinalIgnoreCase));
+        if (entry == null)
+        {
+            Console.WriteLine(I18nService.Get("apps.app_not_found", arg));
+            return;
+        }
+
+        switch (entry.Name.ToUpperInvariant())
+        {
+            case "CAL": RunOslFile("APPS/CAL/main.osl"); break;
+            case "KISS": RunOslFile("APPS/KISS/main.osl"); break;
+            case "TOUR": RunOslFile("APPS/TOUR/main.osl"); break;
+            case "TODO": RunOslFile("APPS/TODO/main.osl"); break;
+            default: Console.WriteLine(I18nService.Get("apps.app_not_available", entry.Name)); break;
+        }
+    }
+
+    private void RunGames(string arg)
+    {
+        var cfgPath = GetLocalizedConfigPath("APPS.CFG");
+        var games = ConfigFileParser.LoadEntries(cfgPath);
+        arg = arg.Trim().ToUpperInvariant();
+
+        if (arg == "")
+        {
+            Console.WriteLine(I18nService.Get("apps.installed_games"));
+            foreach (var game in games)
+                Console.WriteLine($"{game.Name} - {game.Description}");
+            Console.WriteLine();
+            Console.Write(I18nService.Get("apps.enter_choice"));
+            arg = (Console.ReadLine() ?? "").Trim().ToUpperInvariant();
+            if (arg == "")
+            {
+                return;
+            }
+        }
+
+        var entry = games.FirstOrDefault(g => g.Name.Equals(arg, StringComparison.OrdinalIgnoreCase));
+        if (entry == null)
+        {
+            Console.WriteLine(I18nService.Get("apps.game_not_found", arg));
+            return;
+        }
+
+        switch (entry.Name.ToUpperInvariant())
+        {
+            case "HANGMAN": RunOslFile("APPS/HANGMAN/main.osl"); break;
+            default: Console.WriteLine(I18nService.Get("apps.game_not_available", entry.Name)); break;
+        }
+    }
+}
